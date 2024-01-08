@@ -82,7 +82,8 @@ inquirer
        addDepartment()
         break;
     case questions[4]:
-
+       //addRole();
+       viewDeptname();
         break;
     case questions[5]:
 
@@ -91,14 +92,14 @@ inquirer
 
         break;
     default:
-        //db.end();
+        db.end();
         break;
 }
 });
 }
 
 function viewDepartment() {
-  const query = 'select * from department';
+  const query = 'SELECT * FROM department';
   db.query(query, (err, res) => {
       if (err) throw err;
       console.log(table(toTableFormat(res)));
@@ -108,7 +109,7 @@ function viewDepartment() {
 
 
 function viewRoles() {
-  const query = 'select * from role';
+  const query = 'SELECT * FROM role';
   db.query(query, (err, res) => {
       if (err) throw err;
       console.log(table(toTableFormat(res)));
@@ -118,7 +119,7 @@ function viewRoles() {
 
 
 function viewEmployees() {
-  const query = 'select * from employee';
+  const query = 'SELECT * FROM employee';
   db.query(query, (err, res) => {
       if (err) throw err;
       console.log(table(toTableFormat(res)));
@@ -131,14 +132,51 @@ function addDepartment() {
       .prompt({
           name: 'name',
           type: 'input',
-          message: 'What is the name of departments?'
+          message: 'What is the name of the departments?'
       }).then((data) => {
-          const query = 'insert into department (name) values (?)';
+          const query = 'INSERT INTO department (name) VALUES (?)';
           db.query(query, data.name, (err, res) => {
               if (err) throw err;
               askquestion();
           })
       })
+}
+
+
+function viewDeptname(){
+  let list = [];
+  const query = 'SELECT name FROM department';
+  db.query(query, (err, res) => {
+      if (err) throw err;
+      for(let i=0; i<res.length;i++)
+         list[i] = res[i].name;
+      inquirer
+      .prompt([
+        {
+          type: 'input',
+          name: 'title',
+          message: 'What is the name of the role?',
+        },
+        {
+          type: 'input',
+          name: 'salary',
+          message: 'What is the salary of the role?',
+        },
+        {
+          type: 'list',
+          name: 'belong',
+          message: 'Which department does the role belong to?',
+          choices: list,
+        }
+      ]).then((data) => {
+          const query = 'INSERT INTO role (name) VALUES (?)';
+          db.query(query, data.name, (err, res) => {
+              if (err) throw err;
+              askquestion();
+          })
+      })
+  });
+  //return list
 }
 
 
