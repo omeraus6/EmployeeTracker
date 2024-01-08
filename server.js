@@ -1,9 +1,14 @@
+const inquirer = require('inquirer');
+
 const express = require('express');
 // Import and require mysql2
 const mysql = require('mysql2');
-const CLI = require('./lib/cli.js');
 
-const cli = new CLI();
+const { table } = require('table');
+
+
+const questions = ["view all departments","View all roles","View all employee","Add a department",  
+      "Add a role","Add an employee","Add an employee role","Exit"];
 
 const PORT = process.env.PORT || 3001;
 const app = express();
@@ -29,8 +34,9 @@ const db = mysql.createConnection(
 
 db.connect((err) => {
   if (err) throw err;
-  cli.run();
+  askquestion();
 });
+
 
 
 
@@ -48,6 +54,100 @@ db.connect((err) => {
 //});
 
 
+function askquestion() {
+  
+inquirer
+.prompt([
+  {
+    type: 'list',
+    message: 'What would you like to do?',
+    name: 'mainprompt',
+    choices: questions,
+  },
+])
+.then((data) => {
+  
+  action = data.mainprompt;
+  switch (data.mainprompt) {
+    case questions[0]:
+       viewDepartment();
+        break;
+    case questions[1]:
+       viewRoles();
+        break;
+    case questions[2]:
+       viewEmployees();
+        break;
+    case questions[3]:
+       addDepartment()
+        break;
+    case questions[4]:
+
+        break;
+    case questions[5]:
+
+        break;
+    case questions[6]:
+
+        break;
+    default:
+        //db.end();
+        break;
+}
+});
+}
+
+function viewDepartment() {
+  const query = 'select * from department';
+  db.query(query, (err, res) => {
+      if (err) throw err;
+      console.log(table(toTableFormat(res)));
+      askquestion();
+  });
+};
+
+
+function viewRoles() {
+  const query = 'select * from role';
+  db.query(query, (err, res) => {
+      if (err) throw err;
+      console.log(table(toTableFormat(res)));
+      askquestion();
+  });
+};
+
+
+function viewEmployees() {
+  const query = 'select * from employee';
+  db.query(query, (err, res) => {
+      if (err) throw err;
+      console.log(table(toTableFormat(res)));
+      askquestion();
+  });
+};
+
+function addDepartment() {
+  inquirer
+      .prompt({
+          name: 'name',
+          type: 'input',
+          message: 'What is the name of departments?'
+      }).then((data) => {
+          const query = 'insert into department (name) values (?)';
+          db.query(query, data.name, (err, res) => {
+              if (err) throw err;
+              askquestion();
+          })
+      })
+}
+
+
+function toTableFormat(arr) {
+  const header = Object.keys(arr[0]);
+  const rows = arr.map(obj => Object.values(obj));
+  return [header, ...rows];
+}
+
 
 // Default response for any other request (Not Found)
 app.use((req, res) => {
@@ -57,6 +157,5 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
 
 
