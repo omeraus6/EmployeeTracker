@@ -37,7 +37,7 @@ db.connect((err) => {
   askquestion();
 });
 
-
+//prompt start
 function askquestion() {
   
 inquirer
