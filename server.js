@@ -38,22 +38,6 @@ db.connect((err) => {
 });
 
 
-
-
-//const deletedRow = 3;
-//db.query(`DELETE FROM favorite_books WHERE id = ?`, deletedRow, (err, result) => {
-  //if (err) {
-    //console.log(err);
- // }
-  //console.log(result);
-//});
-
-//// Query database
-//db.query('SELECT * FROM favorite_books', function (err, results) {
-  //console.log(results);
-//});
-
-
 function askquestion() {
   
 inquirer
@@ -82,14 +66,13 @@ inquirer
        addDepartment()
         break;
     case questions[4]:
-       //addRole();
-       viewDeptname();
+       addRole();
         break;
     case questions[5]:
-
+        addEmployee();
         break;
     case questions[6]:
-
+        updateEmpRoles();
         break;
     default:
         db.end();
@@ -143,7 +126,7 @@ function addDepartment() {
 }
 
 
-function viewDeptname(){
+function addRole(){
   let list = [];
   const query = 'SELECT name FROM department';
   db.query(query, (err, res) => {
@@ -169,16 +152,116 @@ function viewDeptname(){
           choices: list,
         }
       ]).then((data) => {
-          const query = 'INSERT INTO role (name) VALUES (?)';
-          db.query(query, data.name, (err, res) => {
-              if (err) throw err;
-              askquestion();
-          })
+         const query = 'SELECT id FROM department WHERE name = ?';
+         db.query(query, data.belong, (err, result) => {
+             if (err) throw err;
+             console.log();
+             const query2 = 'INSERT INTO role (title,salary,department_id) VALUES (?,?,?)';
+             db.query(query2, [data.title,data.salary,result[0].id], (err, result2) => {
+               if (err) throw err;
+                askquestion();
+            })
+         })
+          
       })
   });
-  //return list
 }
 
+
+function addEmployee() {
+  db.query('SELECT * FROM employee', (err, empRes) => {
+          const employees = empRes.map(employee => {
+              return employee.first_name + ' ' + employee.last_name;
+          });
+          db.query('SELECT * FROM role', (err, roleRes) => {
+                  const roles = roleRes.map(role => {
+                      return role.title;
+                  });
+
+                  inquirer
+                      .prompt([{
+                          type: 'input', 
+                          name: 'first_name',
+                          message: 'What id the employee first name?'
+                      },
+                      {
+                          type: 'input',
+                          name: 'last_name',
+                          message: 'What is the employee last name?'
+                      },
+                      {
+                          type: 'list',
+                          name: 'role_id',
+                          message: 'What is the employee role?',
+                          choices: roles
+                      },
+                      {
+                          type: 'list',
+                          name: 'manager_id',
+                          message: 'who is the employee manager?',
+                          choices: employees
+                      }
+                      ]).then((res) => {
+                          const { first_name, last_name } = res;
+                          const manager = empRes.filter(employee => {
+                              return employee.first_name + ' ' + employee.last_name === res.manager;
+                          })[0];
+                          const role_id = roleRes.filter(role => {
+                              return role.title === res.role;
+                          })[0];
+                          const manager_id = manager ? manager.id : null;
+                          db.query(
+                              'INSERT INTO employee SET ?',
+                              { first_name, last_name, role_id, manager_id }, (err, result) => {
+                                  if (err) throw err;
+                              }
+                          )
+                          askquestion();
+                      });
+              }
+          )
+      }
+  )
+}
+
+
+function updateEmpRoles() {
+  const query = 'SELECT * FROM employee';
+  db.query(query, (err, res) => {
+      const employees = res.map(employee => {
+          return employee.first_name + ' ' + employee.last_name;
+      });
+      db.query('SELECT * FROM role', (err, result) => {
+          const roles = result.map(role => {
+              return role.title;
+          });
+          inquirer
+              .prompt([
+                  {
+                      type: 'list',
+                      name: 'employee',
+                      message: 'Which employee\'s role do you want to update?',
+                      choices: employees
+                  },
+                  {
+                      type: 'list',
+                      name: 'role',
+                      message: 'Which role do you want to assign the selected employee?',
+                      choices: roles
+                  }
+              ]).then(answer => {
+                  const id = result.filter(employee => {
+                      return employee.first_name + ' ' + employee.last_name === answer.employee;
+                  })[0]
+                  db.query('UPDATE employee SET role_id = ? where id = ?', [role_id, id], (err, result) => {
+                          if (err) throw err;
+                          askquestion();
+                      }
+                  )
+              })
+      })
+  })
+}
 
 function toTableFormat(arr) {
   const header = Object.keys(arr[0]);
