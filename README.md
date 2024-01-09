@@ -70,8 +70,10 @@ image 9:
 image 10: 
  
 ![alt text](public/assets/images/11.png)
-image 10: image 9-11 : project run
+image 11: image 9-11 : project run
 
+![alt text](public/assets/images/EmployeeTracker.mp4)
+video 1: project video run
 
 
 ## Credits
