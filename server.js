@@ -120,6 +120,7 @@ function addDepartment() {
           const query = 'INSERT INTO department (name) VALUES (?)';
           db.query(query, data.name, (err, res) => {
               if (err) throw err;
+              console.log("New Department added to database");
               askquestion();
           })
       })
@@ -159,6 +160,7 @@ function addRole(){
              const query2 = 'INSERT INTO role (title,salary,department_id) VALUES (?,?,?)';
              db.query(query2, [data.title,data.salary,result[0].id], (err, result2) => {
                if (err) throw err;
+                console.log("New role added to database");
                 askquestion();
             })
          })
@@ -169,59 +171,99 @@ function addRole(){
 
 
 function addEmployee() {
-  db.query('SELECT * FROM employee', (err, empRes) => {
-          const employees = empRes.map(employee => {
-              return employee.first_name + ' ' + employee.last_name;
-          });
-          db.query('SELECT * FROM role', (err, roleRes) => {
-                  const roles = roleRes.map(role => {
-                      return role.title;
-                  });
+  let first=[];
+  let last=[];
+  let employees = [];
+  let roles = [];
+  const query = 'SELECT * FROM employee';
+  db.query(query, (err, res) => {
+       if (err) throw err;
+       employees[0] = "None"
+       for(let i=0; i<res.length;i++)
+       {
+           employees[i+1] = res[i].first_name + " " + res[i].last_name;
+           first[i] = res[i].first_name;
+           last[i] = res[i].last_name;
+       }
+      db.query('SELECT * FROM role', (err, result) => {
+          if (err) throw err;
+          for(let i=0; i<result.length;i++)
+            roles[i] = result[i].title;
 
-                  inquirer
-                      .prompt([{
-                          type: 'input', 
-                          name: 'first_name',
-                          message: 'What id the employee first name?'
-                      },
-                      {
-                          type: 'input',
-                          name: 'last_name',
-                          message: 'What is the employee last name?'
-                      },
-                      {
-                          type: 'list',
-                          name: 'role_id',
-                          message: 'What is the employee role?',
-                          choices: roles
-                      },
-                      {
-                          type: 'list',
-                          name: 'manager_id',
-                          message: 'who is the employee manager?',
-                          choices: employees
-                      }
-                      ]).then((res) => {
-                          const { first_name, last_name } = res;
-                          const manager = empRes.filter(employee => {
-                              return employee.first_name + ' ' + employee.last_name === res.manager;
-                          })[0];
-                          const role_id = roleRes.filter(role => {
-                              return role.title === res.role;
-                          })[0];
-                          const manager_id = manager ? manager.id : null;
-                          db.query(
-                              'INSERT INTO employee SET ?',
-                              { first_name, last_name, role_id, manager_id }, (err, result) => {
-                                  if (err) throw err;
-                              }
-                          )
-                          askquestion();
-                      });
-              }
-          )
-      }
-  )
+            inquirer
+              .prompt([
+               {
+                  type: 'input', 
+                  name: 'first',
+                  message: 'What id the employee first name?'
+               },
+               {
+                  type: 'input',
+                  name: 'last',
+                  message: 'What is the employee last name?'
+               },
+               {
+                  type: 'list',
+                  name: 'role',
+                  message: 'What is the employee role?',
+                  choices: roles
+               },
+               {
+                  type: 'list',
+                  name: 'employee',
+                  message: 'who is the employee manager?',
+                  choices: employees
+               }
+              ]).then((data) => {
+                for(let i=0;i<res.length;i++)
+                {
+                  if(data.employee == employees[i] && employees[i] != 'None')
+                  {
+                    console.log("not none " + data.employee + " " + employees[i]);
+                    const query = 'SELECT id FROM employee WHERE first_name = ? AND last_name = ?';
+                    db.query(query, [first[i],last[i]], (err, result2) => {
+                       if (err) throw err;
+                          for(let i=0;i<result.length;i++)
+                          {
+                            if(data.role == roles[i])
+                            {
+                              const query = 'SELECT id FROM role WHERE title = ?';
+                              db.query(query, data.role, (err, result4) => {
+                                if (err) throw err;
+                                  const query2 = 'INSERT INTO employee (first_name,last_name,role_id,manager_id) VALUES (?,?,?,?)';
+                                  db.query(query2, [data.first,data.last,result4[0].id,result2[0].id], (err, result5) => {
+                                    if (err) throw err;
+                                      console.log("New employee added to database");
+                                      i= res.length +2; 
+                                      askquestion();
+                                  })
+                                })
+                            }
+                          }
+                     })
+                  }
+                  else if(data.employee == employees[i] && employees[i] == 'None')
+                  {
+                    console.log("none " + data.employee + " " + employees[i]);
+                    const query = 'SELECT id FROM role WHERE title = ?';
+                        db.query(query, data.role, (err, result4) => {
+                            if (err) throw err;
+                               const query2 = 'INSERT INTO employee (first_name,last_name,role_id) VALUES (?,?,?)';
+                             db.query(query2, [data.first,data.last,result4[0].id], (err, result5) => {
+                                if (err) throw err;
+                                 console.log("New employee added to database");
+                                   i= res.length +2;   
+                                  askquestion();
+                                  
+                              })
+                         })
+                  }
+                }
+            });
+      });
+  });       
+                  
+  
 }
 
 
@@ -266,7 +308,6 @@ function updateEmpRoles() {
                     const query = 'SELECT id FROM employee WHERE first_name = ? AND last_name = ?';
                     db.query(query, [first[i],last[i]], (err, result2) => {
                        if (err) throw err;
-                        console.log(result2);
                           for(let i=0;i<result.length;i++)
                           {
                             if(data.role == roles[i])
@@ -274,24 +315,20 @@ function updateEmpRoles() {
                               const query = 'SELECT id FROM role WHERE title = ?';
                               db.query(query, data.role, (err, result4) => {
                                 if (err) throw err;
-                                  console.log(result4);
                                   const query2 = 'UPDATE employee SET role_id = ? WHERE id = ?';
                                   db.query(query2, [result4[0].id,result2[0].id], (err, result5) => {
                                     if (err) throw err;
+                                      console.log("Employee role Updated in database");
                                       askquestion();
                                   })
                                 })
                             }
                           }
                      })
-
                   }
                 }
-
-                
             });
       });
-      
   });
                 
 }
