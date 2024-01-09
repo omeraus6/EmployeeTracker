@@ -8,7 +8,7 @@ const { table } = require('table');
 
 
 const questions = ["view all departments","View all roles","View all employee","Add a department",  
-      "Add a role","Add an employee","Add an employee role","Exit"];
+      "Add a role","Add an employee","Update an employee role","Exit"];
 
 const PORT = process.env.PORT || 3001;
 const app = express();
@@ -226,41 +226,74 @@ function addEmployee() {
 
 
 function updateEmpRoles() {
+  let first=[];
+  let last=[];
+  let employees = [];
+  let roles = [];
   const query = 'SELECT * FROM employee';
   db.query(query, (err, res) => {
-      const employees = res.map(employee => {
-          return employee.first_name + ' ' + employee.last_name;
-      });
+       if (err) throw err;
+       for(let i=0; i<res.length;i++)
+       {
+           employees[i] = res[i].first_name + " " + res[i].last_name;
+           first[i] = res[i].first_name;
+           last[i] = res[i].last_name;
+       }
       db.query('SELECT * FROM role', (err, result) => {
-          const roles = result.map(role => {
-              return role.title;
-          });
-          inquirer
+          if (err) throw err;
+          for(let i=0; i<result.length;i++)
+            roles[i] = result[i].title;
+
+            inquirer
               .prompt([
+               {
+                  type: 'list',
+                  name: 'employee',
+                  message: 'Which employee\'s role do you want to update?',
+                  choices: employees
+               },
+               {
+                  type: 'list',
+                  name: 'role',
+                  message: 'Which role do you want to assign the selected employee?',
+                  choices: roles
+               }
+              ]).then((data) => {
+                for(let i=0;i<res.length;i++)
+                {
+                  if(data.employee == employees[i])
                   {
-                      type: 'list',
-                      name: 'employee',
-                      message: 'Which employee\'s role do you want to update?',
-                      choices: employees
-                  },
-                  {
-                      type: 'list',
-                      name: 'role',
-                      message: 'Which role do you want to assign the selected employee?',
-                      choices: roles
+                    const query = 'SELECT id FROM employee WHERE first_name = ? AND last_name = ?';
+                    db.query(query, [first[i],last[i]], (err, result2) => {
+                       if (err) throw err;
+                        console.log(result2);
+                          for(let i=0;i<result.length;i++)
+                          {
+                            if(data.role == roles[i])
+                            {
+                              const query = 'SELECT id FROM role WHERE title = ?';
+                              db.query(query, data.role, (err, result4) => {
+                                if (err) throw err;
+                                  console.log(result4);
+                                  const query2 = 'UPDATE employee SET role_id = ? WHERE id = ?';
+                                  db.query(query2, [result4[0].id,result2[0].id], (err, result5) => {
+                                    if (err) throw err;
+                                      askquestion();
+                                  })
+                                })
+                            }
+                          }
+                     })
+
                   }
-              ]).then(answer => {
-                  const id = result.filter(employee => {
-                      return employee.first_name + ' ' + employee.last_name === answer.employee;
-                  })[0]
-                  db.query('UPDATE employee SET role_id = ? where id = ?', [role_id, id], (err, result) => {
-                          if (err) throw err;
-                          askquestion();
-                      }
-                  )
-              })
-      })
-  })
+                }
+
+                
+            });
+      });
+      
+  });
+                
 }
 
 function toTableFormat(arr) {
